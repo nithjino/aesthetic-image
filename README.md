@@ -1,4 +1,9 @@
 # Aesthetic Image Creator
+Main repo here: https://gitlab.com/bunu/aesthetic-image
+
+This repo is just a copy of my gitlab repo. There is no guarantee that this repo will be up-to-date
+
+Check out my gitlab if you want that.
 
 ## Requirements
 * Python 3
