@@ -1,6 +1,6 @@
 from PIL import Image
 import numpy as np
-import wx
+import wx, jpglitch, io
 
 def wx_to_PIL(bitmap):
     size = tuple(bitmap.GetSize())
@@ -33,3 +33,13 @@ def shiftColor(image,color,x,y):
     '''
     array[band] = np.roll(array[band], (x, y), (0, 1))
     return Image.fromarray(array.transpose())
+
+def glitch(image,amount,seed,iterations):
+    if image.format is not 'JPEG':
+        image = image.convert('RGB')
+    image_bytes = io.BytesIO()
+    image.save(image_bytes,format='JPEG')
+    image_bytes = image_bytes.getvalue()
+    jpeg_obj = jpglitch.Jpeg(image_bytes,amount,seed,iterations)
+    image = jpeg_obj.save_image()
+    return image

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import wx, os, effects
 from PIL import Image
-import time
 
 class MainGUI(wx.Frame):
     def __init__(self,parent,title):
@@ -35,8 +34,12 @@ class MainGUI(wx.Frame):
         
         #Button
         resetButton = wx.Button(self.panel,label="Reset Image")
+        resetButton.SetToolTip(wx.ToolTip('Reloads the image from disk. All effects will be lost'))
         saveButton = wx.Button(self.panel,label="Save Image")
+        saveButton.SetToolTip(wx.ToolTip('Acts like File->Save Image As'))
         openButton = wx.Button(self.panel,label="Open Image")
+        glitchButton = wx.Button(self.panel,label="Glitch")
+        glitchButton.SetToolTip(wx.ToolTip('This can glitch the image beyond recognition. Use at your own risk!'))
 
         #StaticText
         Xlabel = wx.StaticText(self.panel,label="X")
@@ -44,6 +47,9 @@ class MainGUI(wx.Frame):
         Rlabel = wx.StaticText(self.panel,label="Red:")
         Glabel = wx.StaticText(self.panel,label="Green:")
         Blabel = wx.StaticText(self.panel,label="Blue:")
+        glitchAmountlabel = wx.StaticText(self.panel,label="Amount:")
+        Seedlabel = wx.StaticText(self.panel,label="Seed:")
+        Iterlabel = wx.StaticText(self.panel,label="Iteration(s):")
 
         #SpinCtrl
         self.RslideX = wx.SpinCtrl(self.panel,min=-500,max=500)
@@ -54,6 +60,13 @@ class MainGUI(wx.Frame):
         
         self.BslideX = wx.SpinCtrl(self.panel,min=-500,max=500)
         self.BslideY = wx.SpinCtrl(self.panel,min=-500,max=500)
+
+        self.glitchSeed = wx.SpinCtrl(self.panel,min=-0,max=99)
+        self.glitchSeed.SetToolTip(wx.ToolTip('This determines where in the image data the effect starts overwriting data. Value from 1 to 99'))
+        self.glitchIter = wx.SpinCtrl(self.panel,min=-0,max=115)
+        self.glitchIter.SetToolTip(wx.ToolTip('This determines how many times the effect overwrites data. Value from 1-115'))
+        self.glitchAmount = wx.SpinCtrl(self.panel,min=-0,max=99)
+        self.glitchAmount.SetToolTip(wx.ToolTip('This determines the hex value that is used to overwrite original values in the image data. Value from 1 to 99'))
 
         self.RslideX.name = "redX"
         self.RslideY.name = "redY"
@@ -69,7 +82,8 @@ class MainGUI(wx.Frame):
         RLayout = wx.BoxSizer(wx.HORIZONTAL)
         GLayout = wx.BoxSizer(wx.HORIZONTAL)
         BLayout = wx.BoxSizer(wx.HORIZONTAL)
-        ButtonLayout = wx.BoxSizer(wx.HORIZONTAL)
+        buttonLayout = wx.BoxSizer(wx.HORIZONTAL)
+        glitchControl = wx.BoxSizer(wx.HORIZONTAL)
 
         labelLayout.AddSpacer(125)
         labelLayout.Add(Xlabel,0,wx.ALL,5)
@@ -90,15 +104,25 @@ class MainGUI(wx.Frame):
         BLayout.Add(self.BslideX,0,wx.ALL|wx.ALIGN_RIGHT,5)
         BLayout.Add(self.BslideY,0,wx.ALL|wx.ALIGN_RIGHT,5)
 
-        ButtonLayout.Add(openButton,5)
-        ButtonLayout.Add(saveButton,5)
-        ButtonLayout.Add(resetButton,5)
+
+        glitchControl.Add(glitchAmountlabel,0,wx.ALL|wx.ALIGN_LEFT|wx.ALIGN_CENTRE,5)
+        glitchControl.Add(self.glitchAmount,0,wx.ALL|wx.ALIGN_RIGHT,5)        
+        glitchControl.Add(Seedlabel,0,wx.ALL|wx.ALIGN_LEFT|wx.ALIGN_CENTRE,5)
+        glitchControl.Add(self.glitchSeed,0,wx.ALL|wx.ALIGN_RIGHT,5)
+        glitchControl.Add(Iterlabel,0,wx.ALL|wx.ALIGN_RIGHT|wx.ALIGN_CENTRE,5)
+        glitchControl.Add(self.glitchIter,0,wx.ALL|wx.ALIGN_RIGHT,5)
+        glitchControl.Add(glitchButton,5,wx.ALL|wx.ALIGN_CENTRE)
+
+        buttonLayout.Add(openButton,5)
+        buttonLayout.Add(saveButton,5)
+        buttonLayout.Add(resetButton,5)
 
         controlLayout.Add(labelLayout,0,wx.ALL|wx.EXPAND,5)
         controlLayout.Add(RLayout,0,wx.ALL|wx.EXPAND,5)
         controlLayout.Add(GLayout,0,wx.ALL|wx.EXPAND,5)
         controlLayout.Add(BLayout,0,wx.ALL|wx.EXPAND,5)
-        controlLayout.Add(ButtonLayout,0,wx.ALL|wx.EXPAND,5)
+        controlLayout.Add(glitchControl,0,wx.ALL|wx.EXPAND,5)
+        controlLayout.Add(buttonLayout,0,wx.ALL|wx.EXPAND,5)
 
         topLayout.Add(controlLayout,0,wx.ALL|wx.EXPAND,5)
         topLayout.Add(self.imageFrame,0,wx.ALL|wx.EXPAND,5)
@@ -121,11 +145,21 @@ class MainGUI(wx.Frame):
         self.Bind(wx.EVT_BUTTON,self.resetImage,resetButton)
         self.Bind(wx.EVT_BUTTON,self.OnSaveAs,saveButton)
         self.Bind(wx.EVT_BUTTON,self.OnOpen,openButton)
+        self.Bind(wx.EVT_BUTTON,self.glitchImage,glitchButton)
 
         self.Show(True)
-
+    
+    def glitchImage(self,e):
+        if self.PIL_image is not None:
+            seed = self.glitchSeed.GetValue()
+            iterations = self.glitchIter.GetValue()
+            amount = self.glitchAmount.GetValue()
+            if seed != 0 and iterations != 0 and amount != 0:
+                self.PIL_image = effects.glitch(self.PIL_image,amount,seed,iterations)
+                self.showImage(None,False)
+        
     def shiftColors(self,e):
-        if self.PIL_image != None:
+        if self.PIL_image is not None:
             spin = e.GetEventObject()
             color = spin.name[:-1]
 
@@ -139,9 +173,8 @@ class MainGUI(wx.Frame):
                 self.PIL_image = effects.shiftColor(self.PIL_image,color,shift_value,0)
             else:
                 self.PIL_image = effects.shiftColor(self.PIL_image,color,0,shift_value)
+            
             self.showImage(None,False)  
-        else:
-            pass
 
     def resetImage(self,e):
         self.showImage(self.filePath,True)
@@ -154,6 +187,9 @@ class MainGUI(wx.Frame):
         self.GslideY.SetValue(0)
         self.BslideX.SetValue(0)
         self.BslideY.SetValue(0)
+        self.glitchSeed.SetValue(0)
+        self.glitchIter.SetValue(0)
+        self.glitchAmount.SetValue(0)
 
     def OnOpen(self,e):
         with wx.FileDialog(self,"Choose a file",defaultDir=os.path.expanduser('~'),wildcard=self.wildcard,style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as dlg:
