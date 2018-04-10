@@ -33,4 +33,4 @@ If you shift a channel in one direction for some time, it seems to get stuck in 
 
 ## Features I want to implement if I find the time to do so
 - [ ] Add a scanline effect
-- [*] Add a glitching effect
+- [x] Add a glitching effect
